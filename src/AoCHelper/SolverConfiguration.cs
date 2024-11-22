@@ -40,6 +40,7 @@ public class SolverConfiguration
     /// </summary>
     public List<Assembly> ProblemAssemblies { get; set; }
 
+    public Func<(Type, Func<object?>)[]>? ProblemLoader { get; set; }
     /// <summary>
     /// Represents vertical overflow.
     /// <see href="https://spectreconsole.net/live/live-display"/>

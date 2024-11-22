@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
+
 using Spectre.Console;
-using System.Linq;
 
 namespace AoCHelper;
 
@@ -33,12 +32,12 @@ public static class Solver
             .Cropping(configuration.VerticalOverflowCropping)
             .StartAsync(async ctx =>
             {
-                var lastProblem = LoadAllProblems(configuration.ProblemAssemblies).LastOrDefault();
+                var lastProblem = LoadAllProblems(configuration).LastOrDefault();
                 if (lastProblem is not null)
                 {
                     var sw = new Stopwatch();
                     sw.Start();
-                    var potentialProblem = InstantiateProblem(lastProblem);
+                    var potentialProblem = lastProblem.Item2();
                     sw.Stop();
 
                     if (potentialProblem is BaseProblem problem)
@@ -48,7 +47,7 @@ public static class Solver
                     }
                     else
                     {
-                        RenderEmptyProblem(lastProblem, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration);
+                        //RenderEmptyProblem(lastProblem, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration);
                     }
                 }
             });
@@ -138,10 +137,11 @@ public static class Solver
             .StartAsync(async ctx =>
             {
                 var sw = new Stopwatch();
-                foreach (var problemType in LoadAllProblems(configuration.ProblemAssemblies).Where(problemType => problems.Contains(problemType)))
+                foreach ((Type problemType, Func<object?> instantiate) in LoadAllProblems(configuration)
+                .Where(problemType => problems.Contains(problemType.Item1)))
                 {
                     sw.Restart();
-                    var potentialProblem = InstantiateProblem(problemType);
+                    var potentialProblem = instantiate();
                     sw.Stop();
                     if (potentialProblem is BaseProblem problem)
                     {
@@ -150,7 +150,7 @@ public static class Solver
                     }
                     else
                     {
-                        totalElapsedTime.Add(RenderEmptyProblem(problemType, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration));
+                        //totalElapsedTime.Add(RenderEmptyProblem(problemType, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration));
                     }
                 }
             });
@@ -184,13 +184,13 @@ public static class Solver
             .StartAsync(async ctx =>
             {
                 var sw = new Stopwatch();
-                foreach (Type problemType in LoadAllProblems(configuration.ProblemAssemblies))
+                foreach ((Type problemType, Func<object?> instantiate) in LoadAllProblems(configuration))
                 {
                     sw.Restart();
                     // Since we're trying to instantiate them all, we don't want to show unrelated errors or render unrelated problem rows
                     // However, without the index, calculated once the constructor success, we can't separate those unrelated errors from
                     // our desired problems' ones. So there's a limitation when using this method if other constructors are failing
-                    var potentialProblem = Activator.CreateInstance(problemType);
+                    var potentialProblem = instantiate();
                     sw.Stop();
 
                     if (potentialProblem is BaseProblem problem && problemNumbers.Contains(problem.CalculateIndex()))
@@ -228,10 +228,10 @@ public static class Solver
             .StartAsync(async ctx =>
             {
                 var sw = new Stopwatch();
-                foreach (Type problemType in LoadAllProblems(configuration.ProblemAssemblies))
+                foreach ((Type problemType, Func<object?> instantiate) in LoadAllProblems(configuration))
                 {
                     sw.Restart();
-                    var potentialProblem = InstantiateProblem(problemType);
+                    var potentialProblem = instantiate();
                     sw.Stop();
 
                     if (potentialProblem is BaseProblem problem)
@@ -241,7 +241,7 @@ public static class Solver
                     }
                     else
                     {
-                        totalElapsedTime.Add(RenderEmptyProblem(problemType, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration));
+                        // totalElapsedTime.Add(RenderEmptyProblem(problemType, potentialProblem as string, table, CalculateElapsedMilliseconds(sw), configuration));
                     }
                 }
             });
@@ -254,11 +254,12 @@ public static class Solver
     /// </summary>
     /// <param name="assemblies"></param>
     /// <returns></returns>
-    internal static IEnumerable<Type> LoadAllProblems(List<Assembly> assemblies)
+    internal static IEnumerable<(Type, Func<object?>)> LoadAllProblems(SolverConfiguration configuration)
     {
-        return assemblies.SelectMany(a => a.GetTypes())
-            .Where(type => typeof(BaseProblem).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
-            .OrderBy(t => t.FullName);
+        return configuration.ProblemLoader!();
+        //return assemblies.SelectMany(a => a.GetTypes())
+        //    .Where(type => typeof(BaseProblem).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+        //    .OrderBy(t => t.FullName);
     }
 
     private static SolverConfiguration PopulateConfiguration(Action<SolverConfiguration>? options)

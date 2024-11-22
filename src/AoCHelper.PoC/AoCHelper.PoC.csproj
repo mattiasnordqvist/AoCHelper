@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	  <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <TargetFramework>net9.0</TargetFramework>
     <OutputType>Exe</OutputType>
+	  <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,10 +14,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\AocHelper.Generator\AocHelper.Generator.csproj"  OutputItemType="Analyzer"
+         ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\AoCHelper.PoC.Library\AoCHelper.PoC.Library.csproj" />
-    <ProjectReference Include="..\AoCHelper\AoCHelper.csproj" />
+    <ProjectReference Include="..\AoCHelper\AoCHelper.csproj"  />
   </ItemGroup>
-
+	<PropertyGroup>
+		<!-- https://andrewlock.net/creating-a-source-generator-part-6-saving-source-generator-output-in-source-control/ -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<!-- https://andrewlock.net/creating-a-source-generator-part-6-saving-source-generator-output-in-source-control/ -->
+		<Compile Remove="$(CompilerGeneratedFilesOutputPath)\**\*.cs"></Compile>
+	</ItemGroup>
   <PropertyGroup>
     <NoWarn>S101</NoWarn>
   </PropertyGroup>
